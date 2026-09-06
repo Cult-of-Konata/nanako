@@ -9,10 +9,9 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class Ban extends ListenerAdapter {
+public class Kick extends ListenerAdapter {
     @Override
     public void onMessageReceived(MessageReceivedEvent event) {
         if (event.getAuthor().isBot()) return;
@@ -21,7 +20,7 @@ public class Ban extends ListenerAdapter {
         Message message = event.getMessage();
         String content = message.getContentRaw();
 
-        if (content.startsWith("n^b")) {
+        if (content.startsWith("n^k")) {
             // Permission check: Administrator or one of the configured admin roles
             boolean isAllowed = event.getMember().hasPermission(Permission.ADMINISTRATOR);
             if (!isAllowed) {
@@ -35,12 +34,13 @@ public class Ban extends ListenerAdapter {
                 event.getChannel().sendMessage("You do not have permission to use this command.").queue();
                 return;
             }
+
             // Split by spaces
             String[] args = content.split("\\s+");
 
             //args[0] is always the command itself
             if (args.length < 3) {
-                event.getChannel().sendMessage("Missing args! Use: `n^b [userid] [reason]`").queue();
+                event.getChannel().sendMessage("Missing args! Use: `n^k [userid] [reason]`").queue();
                 return;
             }
 
@@ -58,31 +58,27 @@ public class Ban extends ListenerAdapter {
             final String reasonFinal = reasonTemp;
 
             if (userIdFinal.equals(event.getJDA().getSelfUser().getId())) {
-                event.getChannel().sendMessage("I cannot ban myself!").queue();
+                event.getChannel().sendMessage("I cannot kick myself!").queue();
                 return;
             }
 
             event.getJDA().retrieveUserById(userIdFinal).queue(user ->
                 user.openPrivateChannel().queue(channel ->
-                    channel.sendMessage("You have been banned from " + event.getGuild().getName() + " for: " + reasonFinal).queue(
-                            // If DM succeeds, proceed to ban
-                            unused1 -> executeBan(event, userIdFinal, reasonFinal),
-                            // If sending the message fails, proceed to ban anyway
-                            unused2 -> executeBan(event, userIdFinal, reasonFinal)
-                    ), ignored1 -> executeBan(event, userIdFinal, reasonFinal)
-                ), ignored2 -> event.getChannel().sendMessage("Failed to ban: User ID " + userIdFinal + " does not exist.").queue()
+                    channel.sendMessage("You have been kicked from " + event.getGuild().getName() + " for: " + reasonFinal).queue(
+                            unused1 -> executeKick(event, userIdFinal, reasonFinal),
+                            unused2 -> executeKick(event, userIdFinal, reasonFinal)
+                    ), ignored1 -> executeKick(event, userIdFinal, reasonFinal)
+                ), ignored2 -> event.getChannel().sendMessage("Failed to kick: User ID " + userIdFinal + " does not exist.").queue()
             );
-
-
         }
     }
 
-    private void executeBan(MessageReceivedEvent event, String userId, String reason) {
-        event.getGuild().ban(UserSnowflake.fromId(userId), 0, TimeUnit.SECONDS)
+    private void executeKick(MessageReceivedEvent event, String userId, String reason) {
+        event.getGuild().kick(UserSnowflake.fromId(userId))
                 .reason(reason)
                 .queue(
-                        unused -> event.getChannel().sendMessage("Successfully banned user " + userId).queue(),
-                        error -> event.getChannel().sendMessage("Failed to ban user: " + error.getMessage()).queue()
+                        unused -> event.getChannel().sendMessage("Successfully kicked user " + userId).queue(),
+                        error -> event.getChannel().sendMessage("Failed to kick user: " + error.getMessage()).queue()
                 );
     }
 }
