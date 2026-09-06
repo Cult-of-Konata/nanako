@@ -1,25 +1,11 @@
 package cult.konata.nanako.listeners;
-
-import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.JDABuilder;
-import net.dv8tion.jda.api.events.GenericEvent;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import org.jetbrains.annotations.NotNull;
 
-import java.util.EventListener;
-
-public class ReadyListener implements EventListener {
-        public void setupBot(String token) {
-            JDA jda = JDABuilder.createDefault(token)
-                    .addEventListeners(new ReadyListener())
-                    .build();
-
-            // block until JDA is ready
-            try {
-                jda.awaitReady();
-            } catch (Exception e) {
-                System.out.println("Could not awaitReady! Printing stack trace!");
-                e.printStackTrace();
-            }
-        }
-
+public class ReadyListener extends ListenerAdapter {
+    @Override
+    public void onReady(@NotNull ReadyEvent event) {
+        System.out.println("Bot is ready! Logged in as: " + event.getJDA().getSelfUser().getAsTag());
+    }
 }

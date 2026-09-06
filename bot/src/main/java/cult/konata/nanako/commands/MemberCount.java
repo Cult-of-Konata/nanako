@@ -19,7 +19,7 @@ public class MemberCount extends ListenerAdapter {
             if (guild != null) {
                 int memberCount = guild.getMemberCount();
                 MessageChannel channel = event.getChannel();
-                channel.sendMessage("Total members of this server: " + memberCount);
+                channel.sendMessage("Total members of this server: " + memberCount).queue();
             }
         }
     }
