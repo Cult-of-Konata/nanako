@@ -5,6 +5,7 @@ import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import cult.konata.nanako.commands.PingPong;
 import cult.konata.nanako.commands.MemberCount;
+import cult.konata.nanako.commands.moderation.Ban;
 import cult.konata.nanako.listeners.ReadyListener;
 
 public class Main {
@@ -31,7 +32,7 @@ public class Main {
             System.out.println("Token passed.");
             JDA api = JDABuilder.createDefault(token)
                     .enableIntents(GatewayIntent.MESSAGE_CONTENT)
-                    .addEventListeners(new PingPong(), new MemberCount(), new ReadyListener())
+                    .addEventListeners(new PingPong(), new MemberCount(), new Ban(), new ReadyListener())
                     .build();
         }
     }
