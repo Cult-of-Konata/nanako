@@ -7,6 +7,8 @@ import java.util.Map;
 
 public class ConfigManager {
     private static final Map<Long, List<String>> adminRoles = new HashMap<>();
+    private static final Map<Long, String> reportRoles = new HashMap<>();
+    private static final Map<Long, String> reportChannels = new HashMap<>();
 
     public static void addAdminRole(long guildId, String roleId) {
         adminRoles.computeIfAbsent(guildId, k -> new ArrayList<>()).add(roleId);
@@ -34,5 +36,29 @@ public class ConfigManager {
             }
         }
         return false;
+    }
+
+    public static void setReportRole(long guildId, String roleId) {
+        reportRoles.put(guildId, roleId);
+    }
+
+    public static String getReportRole(long guildId) {
+        return reportRoles.get(guildId);
+    }
+
+    public static void removeReportRole(long guildId) {
+        reportRoles.remove(guildId);
+    }
+
+    public static void setReportChannel(long guildId, String channelId) {
+        reportChannels.put(guildId, channelId);
+    }
+
+    public static String getReportChannel(long guildId) {
+        return reportChannels.get(guildId);
+    }
+
+    public static void removeReportChannel(long guildId) {
+        reportChannels.remove(guildId);
     }
 }

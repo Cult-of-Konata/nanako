@@ -8,6 +8,7 @@ import cult.konata.nanako.commands.MemberCount;
 import cult.konata.nanako.commands.moderation.Ban;
 import cult.konata.nanako.commands.moderation.Config;
 import cult.konata.nanako.commands.moderation.Kick;
+import cult.konata.nanako.commands.moderation.Report;
 import cult.konata.nanako.listeners.ReadyListener;
 
 public class Main {
@@ -40,6 +41,7 @@ public class Main {
                             new Ban(),
                             new Config(),
                             new Kick(),
+                            new Report(),
                             new ReadyListener()
                     )
                     .build();
