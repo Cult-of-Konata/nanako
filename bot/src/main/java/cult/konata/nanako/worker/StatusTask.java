@@ -5,7 +5,13 @@ import net.dv8tion.jda.api.entities.Activity;
 
 import java.util.Random;
 
+/**
+ * The StatusTask is a task that changes the status every 3 minutes.
+ */
 public class StatusTask implements Runnable {
+    /**
+     * All statuses must be in this array.
+     */
     private static final Activity[] STATUSES = {
             Activity.playing("authored by meowcat767"),
             Activity.watching("the vent channels"),
@@ -46,6 +52,10 @@ public class StatusTask implements Runnable {
         }
     }
 
+    /**
+     * Get the list of possible activities.
+     * @return String[] activities.
+     */
     public Activity[] getActivities() {
         return activities;
     }
