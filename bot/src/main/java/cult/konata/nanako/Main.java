@@ -4,6 +4,7 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import cult.konata.nanako.commands.PingPong;
+import cult.konata.nanako.commands.Info;
 import cult.konata.nanako.commands.MemberCount;
 import cult.konata.nanako.commands.contest.ArtContest;
 import cult.konata.nanako.commands.moderation.Ban;
@@ -13,7 +14,14 @@ import cult.konata.nanako.commands.moderation.Report;
 import cult.konata.nanako.listeners.ReadyListener;
 
 public class Main {
+    private static long startTimeMillis;
+
+    public static long getStartTimeMillis() {
+        return startTimeMillis;
+    }
+
     public static void main(String[] args) {
+        startTimeMillis = System.currentTimeMillis();
         String token = System.getProperty("token");
 
         // Fallback to program arguments if -Dtoken is missing or misplaced
@@ -38,6 +46,7 @@ public class Main {
                     .enableIntents(GatewayIntent.MESSAGE_CONTENT, GatewayIntent.GUILD_MESSAGES, GatewayIntent.DIRECT_MESSAGES, GatewayIntent.GUILD_MESSAGE_REACTIONS, GatewayIntent.DIRECT_MESSAGE_REACTIONS)
                     .addEventListeners(
                             new PingPong(),
+                            new Info(),
                             new MemberCount(),
                             new ArtContest(),
                             new Ban(),
