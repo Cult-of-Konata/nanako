@@ -26,7 +26,7 @@ public class Config extends ListenerAdapter {
 
             String[] args = content.split("\\s+");
             if (args.length < 2) {
-                event.getChannel().sendMessage("Use: `n^config adminrole [add/remove/list] [roleId]`\n`n^config reportrole [set/remove/get] [roleId]`\n`n^config reportchannel [set/remove/get] [channelId]`").queue();
+                event.getChannel().sendMessage("Use: `n^config adminrole [add/remove/list] [roleId]`\n`n^config reportrole [set/remove/get] [roleId]`\n`n^config reportchannel [set/remove/get] [channelId]`\n`n^config artname [set <name>/remove/get]`\n`n^config artchannel [set/remove/get] [channelId]`\n`n^config artstaffchannel [set/remove/get] [channelId]`").queue();
                 return;
             }
 
@@ -153,8 +153,123 @@ public class Config extends ListenerAdapter {
                         event.getChannel().sendMessage("Unknown action. Use `set`, `remove`, or `get`.").queue();
                     }
                 }
+            } else if (subCommand.equals("artname")) {
+                if (args.length < 3) {
+                    event.getChannel().sendMessage("Use: `n^config artname [set <competition name>/remove/get]`").queue();
+                    return;
+                }
+
+                String action = args[2].toLowerCase();
+
+                if (action.equals("set")) {
+                    if (args.length < 4) {
+                        event.getChannel().sendMessage("Please provide a competition name. Use: `n^config artname set <name>`").queue();
+                        return;
+                    }
+                    StringBuilder nameBuilder = new StringBuilder();
+                    for (int i = 3; i < args.length; i++) {
+                        nameBuilder.append(args[i]).append(" ");
+                    }
+                    String name = nameBuilder.toString().trim();
+                    if (name.isEmpty()) {
+                        event.getChannel().sendMessage("Competition name cannot be empty.").queue();
+                        return;
+                    }
+                    ConfigManager.setArtCompetitionName(guildId, name);
+                    event.getChannel().sendMessage("Set art competition name to: " + name).queue();
+                } else if (action.equals("remove") || action.equals("clear")) {
+                    ConfigManager.removeArtCompetitionName(guildId);
+                    event.getChannel().sendMessage("Removed art competition name.").queue();
+                } else if (action.equals("get") || action.equals("list")) {
+                    String name = ConfigManager.getArtCompetitionName(guildId);
+                    if (name == null || name.isEmpty()) {
+                        event.getChannel().sendMessage("No art competition name configured.").queue();
+                    } else {
+                        event.getChannel().sendMessage("Configured art competition: " + name).queue();
+                    }
+                } else {
+                    event.getChannel().sendMessage("Unknown action. Use `set`, `remove`, or `get`.").queue();
+                }
+            } else if (subCommand.equals("artchannel")) {
+                if (args.length < 3) {
+                    event.getChannel().sendMessage("Use: `n^config artchannel [set/remove/get] [channelId]`").queue();
+                    return;
+                }
+
+                String action = args[2].toLowerCase();
+
+                if (action.equals("set")) {
+                    if (args.length < 4) {
+                        event.getChannel().sendMessage("Please provide a channel ID.").queue();
+                        return;
+                    }
+                    String channelId = args[3].replaceAll("[^0-9]", "");
+                    if (channelId.isEmpty()) {
+                        event.getChannel().sendMessage("Invalid channel ID.").queue();
+                        return;
+                    }
+                    ConfigManager.setArtSubmissionChannel(guildId, channelId);
+                    event.getChannel().sendMessage("Set art submission channel to: " + channelId).queue();
+                } else if (action.equals("remove") || action.equals("clear")) {
+                    ConfigManager.removeArtSubmissionChannel(guildId);
+                    event.getChannel().sendMessage("Removed art submission channel.").queue();
+                } else if (action.equals("get") || action.equals("list")) {
+                    String channelId = ConfigManager.getArtSubmissionChannel(guildId);
+                    if (channelId == null || channelId.isEmpty()) {
+                        event.getChannel().sendMessage("No art submission channel configured.").queue();
+                    } else {
+                        event.getChannel().sendMessage("Configured art submission channel: " + channelId).queue();
+                    }
+                } else {
+                    String possibleChannelId = args[2].replaceAll("[^0-9]", "");
+                    if (!possibleChannelId.isEmpty()) {
+                        ConfigManager.setArtSubmissionChannel(guildId, possibleChannelId);
+                        event.getChannel().sendMessage("Set art submission channel to: " + possibleChannelId).queue();
+                    } else {
+                        event.getChannel().sendMessage("Unknown action. Use `set`, `remove`, or `get`.").queue();
+                    }
+                }
+            } else if (subCommand.equals("artstaffchannel")) {
+                if (args.length < 3) {
+                    event.getChannel().sendMessage("Use: `n^config artstaffchannel [set/remove/get] [channelId]`").queue();
+                    return;
+                }
+
+                String action = args[2].toLowerCase();
+
+                if (action.equals("set")) {
+                    if (args.length < 4) {
+                        event.getChannel().sendMessage("Please provide a channel ID.").queue();
+                        return;
+                    }
+                    String channelId = args[3].replaceAll("[^0-9]", "");
+                    if (channelId.isEmpty()) {
+                        event.getChannel().sendMessage("Invalid channel ID.").queue();
+                        return;
+                    }
+                    ConfigManager.setArtStaffChannel(guildId, channelId);
+                    event.getChannel().sendMessage("Set art staff (top-rated) channel to: " + channelId).queue();
+                } else if (action.equals("remove") || action.equals("clear")) {
+                    ConfigManager.removeArtStaffChannel(guildId);
+                    event.getChannel().sendMessage("Removed art staff channel.").queue();
+                } else if (action.equals("get") || action.equals("list")) {
+                    String channelId = ConfigManager.getArtStaffChannel(guildId);
+                    if (channelId == null || channelId.isEmpty()) {
+                        event.getChannel().sendMessage("No art staff channel configured.").queue();
+                    } else {
+                        event.getChannel().sendMessage("Configured art staff channel: " + channelId).queue();
+                    }
+                } else {
+                    String possibleChannelId = args[2].replaceAll("[^0-9]", "");
+                    if (!possibleChannelId.isEmpty()) {
+                        ConfigManager.setArtStaffChannel(guildId, possibleChannelId);
+                        event.getChannel().sendMessage("Set art staff channel to: " + possibleChannelId).queue();
+                    } else {
+                        event.getChannel().sendMessage("Unknown action. Use `set`, `remove`, or `get`.").queue();
+                    }
+                }
             } else {
-                event.getChannel().sendMessage("Unknown subcommand. Use `adminrole`, `reportrole`, or `reportchannel`.").queue();
+                event.getChannel().sendMessage("Unknown subcommand. Use `adminrole`, `reportrole`, `reportchannel`, `artname`, `artchannel`, or `artstaffchannel`.").queue();
             }
         }
     }

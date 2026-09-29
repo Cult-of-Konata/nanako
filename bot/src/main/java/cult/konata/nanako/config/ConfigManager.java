@@ -61,4 +61,45 @@ public class ConfigManager {
     public static void removeReportChannel(long guildId) {
         reportChannels.remove(guildId);
     }
+
+    // --- Art contest settings ---
+    private static final Map<Long, String> artCompetitionNames = new HashMap<>();
+    private static final Map<Long, String> artSubmissionChannels = new HashMap<>();
+    private static final Map<Long, String> artStaffChannels = new HashMap<>();
+
+    public static void setArtCompetitionName(long guildId, String name) {
+        artCompetitionNames.put(guildId, name);
+    }
+
+    public static String getArtCompetitionName(long guildId) {
+        return artCompetitionNames.get(guildId);
+    }
+
+    public static void removeArtCompetitionName(long guildId) {
+        artCompetitionNames.remove(guildId);
+    }
+
+    public static void setArtSubmissionChannel(long guildId, String channelId) {
+        artSubmissionChannels.put(guildId, channelId);
+    }
+
+    public static String getArtSubmissionChannel(long guildId) {
+        return artSubmissionChannels.get(guildId);
+    }
+
+    public static void removeArtSubmissionChannel(long guildId) {
+        artSubmissionChannels.remove(guildId);
+    }
+
+    public static void setArtStaffChannel(long guildId, String channelId) {
+        artStaffChannels.put(guildId, channelId);
+    }
+
+    public static String getArtStaffChannel(long guildId) {
+        return artStaffChannels.get(guildId);
+    }
+
+    public static void removeArtStaffChannel(long guildId) {
+        artStaffChannels.remove(guildId);
+    }
 }
