@@ -1,4 +1,5 @@
 package cult.konata.nanako.listeners;
+import cult.konata.nanako.worker.ArtRefreshWorker;
 import cult.konata.nanako.worker.StatusWorker;
 import net.dv8tion.jda.api.events.session.ReadyEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -9,5 +10,6 @@ public class ReadyListener extends ListenerAdapter {
     public void onReady(@NotNull ReadyEvent event) {
         System.out.println("Bot is ready! Logged in as: " + event.getJDA().getSelfUser().getAsTag());
         StatusWorker.start(event.getJDA());
+        ArtRefreshWorker.start(event.getJDA());
     }
 }

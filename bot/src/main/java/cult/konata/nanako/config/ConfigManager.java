@@ -1,32 +1,27 @@
 package cult.konata.nanako.config;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
+/**
+ * Guild settings facade. All values are persisted in SQLite via
+ * {@link GuildConfigStore}, so they survive bot restarts. The public API is
+ * unchanged from the previous in-memory version.
+ */
 public class ConfigManager {
-    private static final Map<Long, List<String>> adminRoles = new HashMap<>();
-    private static final Map<Long, String> reportRoles = new HashMap<>();
-    private static final Map<Long, String> reportChannels = new HashMap<>();
-
     public static void addAdminRole(long guildId, String roleId) {
-        adminRoles.computeIfAbsent(guildId, k -> new ArrayList<>()).add(roleId);
+        GuildConfigStore.addAdminRole(guildId, roleId);
     }
 
     public static void removeAdminRole(long guildId, String roleId) {
-        List<String> roles = adminRoles.get(guildId);
-        if (roles != null) {
-            roles.remove(roleId);
-        }
+        GuildConfigStore.removeAdminRole(guildId, roleId);
     }
 
     public static List<String> getAdminRoles(long guildId) {
-        return adminRoles.getOrDefault(guildId, new ArrayList<>());
+        return GuildConfigStore.getAdminRoles(guildId);
     }
 
     public static boolean isAdmin(long guildId, List<String> userRoleIds) {
-        List<String> roles = adminRoles.get(guildId);
+        List<String> roles = GuildConfigStore.getAdminRoles(guildId);
         if (roles == null || roles.isEmpty()) {
             return false;
         }
@@ -39,67 +34,78 @@ public class ConfigManager {
     }
 
     public static void setReportRole(long guildId, String roleId) {
-        reportRoles.put(guildId, roleId);
+        GuildConfigStore.set(guildId, GuildConfigStore.KEY_REPORT_ROLE, roleId);
     }
 
     public static String getReportRole(long guildId) {
-        return reportRoles.get(guildId);
+        return GuildConfigStore.get(guildId, GuildConfigStore.KEY_REPORT_ROLE);
     }
 
     public static void removeReportRole(long guildId) {
-        reportRoles.remove(guildId);
+        GuildConfigStore.remove(guildId, GuildConfigStore.KEY_REPORT_ROLE);
     }
 
     public static void setReportChannel(long guildId, String channelId) {
-        reportChannels.put(guildId, channelId);
+        GuildConfigStore.set(guildId, GuildConfigStore.KEY_REPORT_CHANNEL, channelId);
     }
 
     public static String getReportChannel(long guildId) {
-        return reportChannels.get(guildId);
+        return GuildConfigStore.get(guildId, GuildConfigStore.KEY_REPORT_CHANNEL);
     }
 
     public static void removeReportChannel(long guildId) {
-        reportChannels.remove(guildId);
+        GuildConfigStore.remove(guildId, GuildConfigStore.KEY_REPORT_CHANNEL);
     }
 
     // --- Art contest settings ---
-    private static final Map<Long, String> artCompetitionNames = new HashMap<>();
-    private static final Map<Long, String> artSubmissionChannels = new HashMap<>();
-    private static final Map<Long, String> artStaffChannels = new HashMap<>();
 
     public static void setArtCompetitionName(long guildId, String name) {
-        artCompetitionNames.put(guildId, name);
+        GuildConfigStore.set(guildId, GuildConfigStore.KEY_ART_NAME, name);
     }
 
     public static String getArtCompetitionName(long guildId) {
-        return artCompetitionNames.get(guildId);
+        return GuildConfigStore.get(guildId, GuildConfigStore.KEY_ART_NAME);
     }
 
     public static void removeArtCompetitionName(long guildId) {
-        artCompetitionNames.remove(guildId);
+        GuildConfigStore.remove(guildId, GuildConfigStore.KEY_ART_NAME);
     }
 
     public static void setArtSubmissionChannel(long guildId, String channelId) {
-        artSubmissionChannels.put(guildId, channelId);
+        GuildConfigStore.set(guildId, GuildConfigStore.KEY_ART_SUBMISSION_CHANNEL, channelId);
     }
 
     public static String getArtSubmissionChannel(long guildId) {
-        return artSubmissionChannels.get(guildId);
+        return GuildConfigStore.get(guildId, GuildConfigStore.KEY_ART_SUBMISSION_CHANNEL);
     }
 
     public static void removeArtSubmissionChannel(long guildId) {
-        artSubmissionChannels.remove(guildId);
+        GuildConfigStore.remove(guildId, GuildConfigStore.KEY_ART_SUBMISSION_CHANNEL);
     }
 
     public static void setArtStaffChannel(long guildId, String channelId) {
-        artStaffChannels.put(guildId, channelId);
+        GuildConfigStore.set(guildId, GuildConfigStore.KEY_ART_STAFF_CHANNEL, channelId);
     }
 
     public static String getArtStaffChannel(long guildId) {
-        return artStaffChannels.get(guildId);
+        return GuildConfigStore.get(guildId, GuildConfigStore.KEY_ART_STAFF_CHANNEL);
     }
 
     public static void removeArtStaffChannel(long guildId) {
-        artStaffChannels.remove(guildId);
+        GuildConfigStore.remove(guildId, GuildConfigStore.KEY_ART_STAFF_CHANNEL);
+    }
+
+    // Message ID of the live staff leaderboard message (edited in place on refresh).
+
+    public static void setArtLeaderboardMessage(long guildId, String messageId) {
+        GuildConfigStore.set(guildId, GuildConfigStore.KEY_ART_LEADERBOARD_MESSAGE, messageId);
+    }
+
+    public static String getArtLeaderboardMessage(long guildId) {
+        return GuildConfigStore.get(guildId, GuildConfigStore.KEY_ART_LEADERBOARD_MESSAGE);
+    }
+
+    public static void removeArtLeaderboardMessage(long guildId) {
+        GuildConfigStore.remove(guildId, GuildConfigStore.KEY_ART_LEADERBOARD_MESSAGE);
     }
 }

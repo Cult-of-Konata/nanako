@@ -18,6 +18,7 @@ import net.dv8tion.jda.api.components.actionrow.ActionRow;
 import net.dv8tion.jda.api.components.buttons.Button;
 
 import java.awt.Color;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -30,6 +31,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -41,6 +43,7 @@ public class ArtContest extends ListenerAdapter {
     private static final String CANCEL_PREFIX = "art-cancel:";
     private static final int HISTORY_LIMIT = 100;
     private static final long PENDING_EXPIRY_MINUTES = 15;
+    public static final int DEFAULT_TOP_COUNT = 3;
 
     private final Map<String, PendingSubmission> pending = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
@@ -89,6 +92,11 @@ public class ArtContest extends ListenerAdapter {
 
     private void handleGuildCommand(MessageReceivedEvent event) {
         String content = event.getMessage().getContentRaw();
+        // NOTE: check n^artrefresh first — it also starts with the "n^art" prefix.
+        if (content.startsWith("n^artrefresh")) {
+            handleArtRefresh(event);
+            return;
+        }
         if (!content.startsWith("n^art")) return;
 
         String[] args = content.split("\\s+");
@@ -118,9 +126,114 @@ public class ArtContest extends ListenerAdapter {
                         "Use: `n^art info` — show the current competition.\n"
                                 + "`n^art leaderboard [count]` — show the top-voted art here.\n"
                                 + "`n^art top [count]` — send the top ⭐-voted art to the staff channel (staff only).\n"
+                                + "`n^artrefresh [count]` — refresh the live staff leaderboard now (staff only, also auto-refreshes every 5 min).\n"
                                 + "Enter by DMing the bot an image attachment.").queue();
                 break;
         }
+    }
+
+    private void handleArtRefresh(MessageReceivedEvent event) {
+        if (!isStaff(event)) {
+            event.getChannel().sendMessage("You do not have permission to use this command.").queue();
+            return;
+        }
+        String[] args = event.getMessage().getContentRaw().split("\\s+");
+        int count = parseCount(args, 1, DEFAULT_TOP_COUNT);
+        event.getChannel().sendMessage("Refreshing staff leaderboard...").queue(statusMsg ->
+                refreshStaffLeaderboard(event.getJDA(), event.getGuild().getIdLong(), count, result -> {
+                    if (result == null) {
+                        statusMsg.editMessage("Staff leaderboard refreshed.").queue();
+                    } else {
+                        statusMsg.editMessage(result).queue();
+                    }
+                }));
+    }
+
+    /**
+     * Recomputes the top ⭐-voted art and updates the single live leaderboard message
+     * in the staff channel (posts it first if there isn't one yet).
+     *
+     * @param feedback receives {@code null} on success or an error message on failure.
+     *                 May be {@code null} for silent (scheduled) refreshes.
+     */
+    public static void refreshStaffLeaderboard(JDA jda, long guildId, int count, Consumer<String> feedback) {
+        Consumer<String> reply = feedback != null ? feedback : msg -> {};
+        String subChannelId = ConfigManager.getArtSubmissionChannel(guildId);
+        String staffChannelId = ConfigManager.getArtStaffChannel(guildId);
+
+        if (subChannelId == null || subChannelId.isEmpty()
+                || staffChannelId == null || staffChannelId.isEmpty()) {
+            return; // contest not (fully) configured — nothing to refresh.
+        }
+
+        Guild guild = jda.getGuildById(guildId);
+        if (guild == null) return;
+        GuildMessageChannel subChannel = guild.getChannelById(GuildMessageChannel.class, subChannelId);
+        GuildMessageChannel staffChannel = guild.getChannelById(GuildMessageChannel.class, staffChannelId);
+        if (subChannel == null || staffChannel == null) {
+            reply.accept("Configured art channel could not be found.");
+            return;
+        }
+
+        String competitionName = ConfigManager.getArtCompetitionName(guildId);
+        String title = (competitionName != null && !competitionName.isEmpty()) ? competitionName : "Art Contest";
+
+        subChannel.getHistory().retrievePast(HISTORY_LIMIT).queue(
+                messages -> {
+                    List<RankedEntry> ranked = rankEntries(jda, messages);
+                    int n = Math.min(count, ranked.size());
+
+                    StringBuilder sb = new StringBuilder("🏆 **Top-rated art — ").append(title).append("**");
+                    List<MessageEmbed> embeds = new ArrayList<>();
+                    if (ranked.isEmpty()) {
+                        sb.append("\nNo entries yet. React with ⭐ in <#").append(subChannelId).append("> to vote!");
+                    } else {
+                        sb.append(" (top ").append(n).append(" by ⭐)\n");
+                        for (int i = 0; i < n; i++) {
+                            RankedEntry entry = ranked.get(i);
+                            sb.append("`#").append(i + 1).append("` ")
+                                    .append(entry.stars).append(" ⭐ — ")
+                                    .append("<@").append(entry.entrantId).append("> ")
+                                    .append(entry.message.getJumpUrl()).append("\n");
+
+                            String imageUrl = firstImageUrl(entry.message);
+                            EmbedBuilder eb = new EmbedBuilder()
+                                    .setTitle("#" + (i + 1) + " — " + entry.stars + " ⭐ — " + title)
+                                    .setDescription("<@" + entry.entrantId + "> — " + entry.message.getJumpUrl())
+                                    .setColor(Color.MAGENTA)
+                                    .setFooter("Entrant ID: " + entry.entrantId);
+                            if (imageUrl != null) {
+                                eb.setImage(imageUrl);
+                            }
+                            embeds.add(eb.build());
+                        }
+                    }
+                    long nowEpoch = Instant.now().getEpochSecond();
+                    sb.append("\nLast updated: <t:").append(nowEpoch).append(":R> • auto-refreshes every 5 min (`n^artrefresh` to refresh now).");
+
+                    String text = sb.toString();
+                    String existingId = ConfigManager.getArtLeaderboardMessage(guildId);
+                    if (existingId != null && !existingId.isEmpty()) {
+                        staffChannel.retrieveMessageById(existingId).queue(
+                                existing -> existing.editMessage(text).setEmbeds(embeds).queue(
+                                        msg -> reply.accept(null),
+                                        err -> postNewLeaderboard(staffChannel, guildId, text, embeds, reply)),
+                                err -> postNewLeaderboard(staffChannel, guildId, text, embeds, reply));
+                    } else {
+                        postNewLeaderboard(staffChannel, guildId, text, embeds, reply);
+                    }
+                },
+                error -> reply.accept("Failed to load entries: " + error.getMessage()));
+    }
+
+    private static void postNewLeaderboard(GuildMessageChannel staffChannel, long guildId,
+                                           String text, List<MessageEmbed> embeds, Consumer<String> reply) {
+        staffChannel.sendMessage(text).addEmbeds(embeds).queue(
+                posted -> {
+                    ConfigManager.setArtLeaderboardMessage(guildId, posted.getId());
+                    reply.accept(null);
+                },
+                error -> reply.accept("Failed to post staff leaderboard: " + error.getMessage()));
     }
 
     private void sendArtInfo(MessageReceivedEvent event, long guildId) {
@@ -412,7 +525,7 @@ public class ArtContest extends ListenerAdapter {
         return ConfigManager.isAdmin(event.getGuild().getIdLong(), roleIds);
     }
 
-    private int parseCount(String[] args, int index, int def) {
+    private static int parseCount(String[] args, int index, int def) {
         if (args.length > index) {
             try {
                 int n = Integer.parseInt(args[index].replaceAll("[^0-9]", ""));
@@ -423,7 +536,7 @@ public class ArtContest extends ListenerAdapter {
         return def;
     }
 
-    private List<RankedEntry> rankEntries(JDA jda, List<Message> messages) {
+    private static List<RankedEntry> rankEntries(JDA jda, List<Message> messages) {
         String selfId = jda.getSelfUser().getId();
         List<RankedEntry> entries = new ArrayList<>();
         for (Message m : messages) {
@@ -435,7 +548,7 @@ public class ArtContest extends ListenerAdapter {
         return entries;
     }
 
-    private boolean looksLikeEntry(Message message) {
+    private static boolean looksLikeEntry(Message message) {
         for (MessageEmbed embed : message.getEmbeds()) {
             String title = embed.getTitle() != null ? embed.getTitle() : "";
             MessageEmbed.Footer footer = embed.getFooter();
@@ -445,7 +558,7 @@ public class ArtContest extends ListenerAdapter {
         return false;
     }
 
-    private int countStars(Message message) {
+    private static int countStars(Message message) {
         return message.getReactions().stream()
                 .filter(r -> {
                     try {
@@ -458,7 +571,7 @@ public class ArtContest extends ListenerAdapter {
                 .sum();
     }
 
-    private String extractEntrantId(Message message) {
+    private static String extractEntrantId(Message message) {
         for (MessageEmbed embed : message.getEmbeds()) {
             if (embed.getDescription() != null) {
                 Matcher matcher = MENTION_PATTERN.matcher(embed.getDescription());
@@ -472,7 +585,7 @@ public class ArtContest extends ListenerAdapter {
         return message.getAuthor().getId();
     }
 
-    private String firstImageUrl(Message message) {
+    private static String firstImageUrl(Message message) {
         for (MessageEmbed embed : message.getEmbeds()) {
             if (embed.getImage() != null && embed.getImage().getUrl() != null) return embed.getImage().getUrl();
         }
